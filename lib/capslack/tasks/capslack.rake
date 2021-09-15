@@ -7,7 +7,22 @@ namespace :slack do
 
     stage = fetch(:stage)
     branch = fetch(:branch)
+    local_user = fetch(:local_user)
     slack_config = fetch(:slack_config)
+    time = Time.now.to_s
+    $global_stime = Time.now unless defined? $global_stime
+    duration = Time.at(Time.now - $global_stime).utc.strftime("%H:%M:%S")
+    repo_url = fetch(:repo_url)
+    base_url = 'https://'+repo_url[4..-5].gsub(':','/')
+    current_version = fetch(:current_revision,'default')
+
+    unless defined? $global_old_version
+     on primary(:app) do
+         within current_path do
+           $global_old_version = capture :cat, 'REVISION'
+         end
+     end
+    end
 
     uri = URI(slack_config[:web_hook])
     payload = {
@@ -23,12 +38,25 @@ namespace :slack do
       payload[:fallback] = "#{message_with_app_name}. (branch *#{branch}* on *#{stage}*)"
       payload[:color] = 'good'
       payload[:pretext] = message_with_app_name
-      payload[:fields] = [
+      if message.include?('finished')
+         payload[:fields] = [
+         {title: 'App Name', value: slack_config[:app_name], short: true},
+         {title: 'User', value: local_user, short: true},
+         {title: 'Branch', value: branch, short: true},
+         {title: 'Environment', value: stage, short: true},
+         {title: 'Duration', value: duration, short: true},
+         {title: 'Diff', value: base_url+'/compare/'+$global_old_version+'...'+current_version, short: true},
+         {title: 'Time At', value: Time.now.to_s, short: true}
+       ]
+      else
+        payload[:fields] = [
         {title: 'App Name', value: slack_config[:app_name], short: true},
+         {title: 'User', value: local_user, short: true},
         {title: 'Branch', value: branch, short: true},
         {title: 'Environment', value: stage, short: true},
         {title: 'Time At', value: Time.now.to_s, short: true}
-      ]
+        ]
+      end
     else
       payload[:text] = "#{message_with_app_name}. (branch *#{branch}* on *#{stage}*)"
     end
