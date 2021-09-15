@@ -7,7 +7,7 @@ Send notification message to your Slack channel about your Rails Capistrano depl
 Add this line to your application's Gemfile:
 
 ```ruby
- gem 'capslack', git: 'git@github:liuyang12921/capslack.git', require: false
+ gem 'capslack', git: 'git@github.com:liuyang12921/capslack.git', require: false
 ```
 
 And then execute:
